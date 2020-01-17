@@ -25,8 +25,23 @@ namespace Webapp
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+
             services.AddAuthentication(AzureADB2CDefaults.AuthenticationScheme)
-                .AddAzureADB2C(options => Configuration.Bind("AzureAdB2C", options));
+                .AddAzureADB2C(options => {
+                    this.Configuration.Bind("AzureAdB2C", options);
+                })
+                .AddOpenIdConnect("o365", options =>
+                {
+                    AzureADB2COptions b2cOptions = new AzureADB2COptions();
+                    this.Configuration.Bind("AzureAdB2C", b2cOptions);
+
+                    var tenantName = b2cOptions.Domain.Substring(0, b2cOptions.Domain.IndexOf('.'));
+                    options.Authority = $"https://{tenantName}.b2clogin.com/tfp/{b2cOptions.Domain}/{b2cOptions.SignUpSignInPolicyId}-o365/v2.0";
+                    options.ClientId = b2cOptions.ClientId;
+                    options.CallbackPath = b2cOptions.CallbackPath + "-o365";
+                    options.TokenValidationParameters.NameClaimType = "name";
+                })
+                ;
             services.AddRazorPages();
         }
 
